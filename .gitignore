@@ -1,0 +1,8 @@
+# Ignore all files
+backend/.bsp
+backend/project
+backend/target
+frontend/node_modules
+frontend/yarn.lock
+# But not these files/directories:
+!.gitignore
