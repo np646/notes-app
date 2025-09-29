@@ -1,0 +1,15 @@
+{
+  "name": "finatra-elm-boilerplate",
+  "version": "1.0.0",
+  "description": "Finatra with Elm boilerplate",
+  "scripts": {
+    "build": "elm make src/Main.elm --output=public/elm.js",
+    "serve": "http-server public -p 8000 --cors",
+    "dev": "yarn build && yarn serve",
+    "live": "elm-live src/Main.elm --dir=public --open --port=8000 --host=localhost -- --output=public/elm.js"
+  },
+  "devDependencies": {
+    "elm-live": "^4.0.2",
+    "http-server": "^14.1.1"
+  }
+}
