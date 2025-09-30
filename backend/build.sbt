@@ -1,4 +1,4 @@
-name := "finatra-elm-boilerplate"
+name := "notes-app"
 version := "1.0"
 scalaVersion := "2.13.16"
 

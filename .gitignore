@@ -4,5 +4,9 @@ backend/project
 backend/target
 frontend/node_modules
 frontend/yarn.lock
+frontend/elm-stuff
+frontend/public/elm.js
+.metals
+.vscode
 # But not these files/directories:
 !.gitignore
