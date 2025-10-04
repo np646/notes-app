@@ -15,16 +15,24 @@ import Json.Encode as Encode
 -- MODEL
 
 
+type alias Note =
+    { id : String
+    , title : String
+    , content : String
+    }
+
+
 type alias Model =
     { name : String
     , response : String
     , loading : Bool
+    , notes : List Note
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { name = "", response = "", loading = False }, Cmd.none )
+    ( { name = "", response = "", loading = False, notes = [] }, Cmd.none )
 
 
 
@@ -36,6 +44,8 @@ type Msg
     | PostHello
     | GetHello
     | GotResponse (Result Http.Error String)
+    | LoadNotes
+    | GetNotes (Result Http.Error (List Note))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -54,6 +64,17 @@ update msg model =
             case result of
                 Ok message ->
                     ( { model | response = message, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | response = "Error: " ++ httpErrorString error, loading = False }, Cmd.none )
+
+        LoadNotes ->
+            ( { model | loading = True }, getNotesRequest )
+
+        GetNotes result ->
+            case result of
+                Ok notesList ->
+                    ( { model | notes = notesList, loading = False }, Cmd.none )
 
                 Err error ->
                     ( { model | response = "Error: " ++ httpErrorString error, loading = False }, Cmd.none )
@@ -78,6 +99,35 @@ getHello =
         { url = "http://localhost:8888/api/hello"
         , expect = Http.expectJson GotResponse responseDecoder
         }
+
+
+getNotesRequest : Cmd Msg
+getNotesRequest =
+    Http.get
+        { url = "http://localhost:8888/notes"
+        , expect = Http.expectJson GetNotes notesDecoder
+        }
+
+
+
+-- Decoder for a single note
+
+
+noteDecoder : Decode.Decoder Note
+noteDecoder =
+    Decode.map3 Note
+        (Decode.field "id" Decode.string)
+        (Decode.field "title" Decode.string)
+        (Decode.field "content" Decode.string)
+
+
+
+-- Decoder for a list of notes
+
+
+notesDecoder : Decode.Decoder (List Note)
+notesDecoder =
+    Decode.list noteDecoder
 
 
 responseDecoder : Decode.Decoder String
@@ -105,6 +155,26 @@ httpErrorString error =
 
 
 
+-- View components
+
+
+noteCard : Note -> Element Msg
+noteCard note =
+    column
+        [ padding 15
+        , spacing 10
+        , Background.color (rgb255 242 242 242)
+        , Border.rounded 5
+        , Border.width 1
+        , Border.color (rgb255 217 217 217)
+        , width (px 425)
+        ]
+        [ el [ Font.bold, Font.size 18 ] (text note.title)
+        , paragraph [] [ text note.content ]
+        ]
+
+
+
 -- VIEW
 
 
@@ -121,6 +191,7 @@ view model =
         [ -- h1
           el [ Font.size 20, Font.bold, centerX ] (text "Notes App")
         , -- POST input and button row
+          -- haven't added the post note functionality yet
           row [ spacing 10, centerX ]
             [ Input.text
                 [ padding 5
@@ -152,22 +223,75 @@ view model =
                 , label = text "Add"
                 }
             ]
-        , -- Response area
-          row [centerX]
-            [ if model.loading then
-                el [ Font.color (rgb255 233 215 246) ] (text "Loading...")
+        , row
+            [ spacing 10, centerX ]
+            [ Input.button
+                [ Background.color (rgb255 140 120 222)
+                , Font.color (rgb255 0 0 0)
+                , padding 10
+                , Border.rounded 3
+                ]
+                { onPress =
+                    if model.loading then
+                        Nothing
 
-              else
+                    else
+                        Just LoadNotes
+                , label = text "Load Notes"
+                }
+            ]
+        , -- Response area
+          row [ centerX ]
+            [ if model.loading then
+                el [ Font.color (rgb255 233 215 246), centerX ] (text "Loading...")
+
+              else if not (String.isEmpty model.response) then
+                -- Show error
                 el
                     [ padding 10
                     , Border.solid
                     , Border.width 1
                     , Border.rounded 3
-                    , Border.color (rgb255 204 204 255)
+                    , Border.color (rgb255 255 100 100)
                     , Font.color (rgb255 210 23 104)
                     , width (px 470)
+                    , centerX
                     ]
-                    (text ("Response: " ++ model.response))
+                    (text model.response)
+
+              else if List.isEmpty model.notes then
+                el [ centerX, Font.italic, Font.color (rgb255 150 150 150) ]
+                    (text "No notes yet. Click 'Load Notes'!")
+
+              else
+                column [ spacing 10, centerX, width fill ]
+                    (List.map noteCard model.notes)
+            ]
+        , row
+            [ spacing 10
+            , centerX
+            , padding 10
+            , Border.width 1
+            , Border.dotted
+            ]
+            [ el [ Font.size 18 ]
+                (text "Redis counter: ")
+                , el [ Font.size 18]
+                (text "0")
+            , Input.button
+                [ Background.color (rgb255 140 120 222)
+                , Font.color (rgb255 0 0 0)
+                , padding 10
+                , Border.rounded 3
+                ]
+                { onPress =
+                    if model.loading || String.isEmpty model.name then
+                        Nothing
+
+                    else
+                        Just PostHello -- change to the counter call
+                , label = text "Count"
+                }
             ]
         ]
 
